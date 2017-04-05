@@ -10,11 +10,6 @@ module HasFriendship
         has_many :friendships, as: :friendable,
                  class_name: "HasFriendship::Friendship", dependent: :destroy
 
-        has_many :blocked_friends,
-                  -> { where friendships: { status: 3 } },
-                  through: :friendships,
-                  source: :friend
-
         has_many :friends,
                   -> { where friendships: { status: 2 } },
                   through: :friendships
@@ -64,19 +59,6 @@ module HasFriendship
 
       alias_method :remove_friend, :decline_request
 
-      def block_friend(friend)
-        on_relation_with(friend) do |one, other|
-          HasFriendship::Friendship.find_unblocked_friendship(one, other).block!
-        end
-      end
-
-      def unblock_friend(friend)
-        return unless has_blocked(friend)
-        on_relation_with(friend) do |one, other|
-          HasFriendship::Friendship.find_blocked_friendship(one, other).destroy
-        end
-      end
-
       def on_relation_with(friend)
         transaction do
           yield(self, friend)
@@ -89,10 +71,6 @@ module HasFriendship
       end
 
       private
-
-      def has_blocked(friend)
-        HasFriendship::Friendship.find_one_side(self, friend).blocker_id == self.id
-      end
 
       def can_accept_request?(friendship)
         return if friendship.pending? && self == friendship.friendable

@@ -5,14 +5,6 @@ module HasFriendship
       event :accept do
         transition [:pending, :requested] => :accepted
       end
-
-      event :block do
-        before do
-          self.blocker_id = self.friendable.id
-        end
-
-        transition all - [:blocked] => :blocked
-      end
     end
 
     def self.relation_attributes(one, other, status: nil)
